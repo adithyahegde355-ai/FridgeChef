@@ -1,0 +1,49 @@
+```yaml
+name: Build and Release Fridge Chef
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Package release ZIP
+        run: |
+          zip -r Fridge-Chef-Indian-Recipe-App.zip dist README.md package.json package-lock.json \
+            -x "*/node_modules/*" "*/.git/*"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            Fridge-Chef-Indian-Recipe-App.zip \
+            --title "Fridge Chef ${GITHUB_REF_NAME}" \
+            --notes "Fridge Chef Indian Recipe App.
+
+          Includes the production web build.
+          Recipes from external APIs require an internet connection.
+          Review API terms and recipe attribution before public distribution."
